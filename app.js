@@ -44,7 +44,6 @@ app.get('/pedidos/:id', async (req, res) => {
   await connectDB()
   //const x =  await Pedido.find({})
   const userId = req.params.id;
-  console.log('Entra a tu madre: '+userId);
   try {
     const user = await User.findOne({ _id: userId }).populate({
       path: 'shipments',

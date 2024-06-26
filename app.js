@@ -1,4 +1,7 @@
 import User from './models/User.js';
+import Shipment from './models/Shipment.js';
+import Address from './models/Address.js';
+import Beer from './models/Beer.js';
 import Pedido from './models/Pedidos.js';
 import connectDB from './lib/connectDB.js';
 import 'dotenv/config';
@@ -28,22 +31,39 @@ app.use((req, res, next) => {
 
 app.get('/', async (req, res) => {
 
-        await connectDB()
-       const x =  await User.find({})
+      await connectDB()
+      const x =  await User.find({})
 
 
  
     res.json({data: x });
 });
 
-app.get('/pedidostodos', async (req, res) => {
+app.get('/pedidos/:id', async (req, res) => {
 
   await connectDB()
- const x =  await Pedido.find({})
+  //const x =  await Pedido.find({})
+  const userId = req.params.id;
+  console.log('Entra a tu madre: '+userId);
+  try {
+    const user = await User.findOne({ _id: userId }).populate({
+      path: 'shipments',
+      populate: [
+        { path: 'beers.beer', model: 'Beer' },
+        { path: 'user', model: 'User' },
+        { path: 'address', model: 'Address' },
+      ],
+    });
 
-
-
-res.json({data: x });
+    if (user) {
+      res.json(user.shipments);
+    } else {
+      res.status(404).send('User not found');
+    }
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    res.status(500).send('Server error');
+  }
 });
 
 app.post('/login', async (req, res) => {

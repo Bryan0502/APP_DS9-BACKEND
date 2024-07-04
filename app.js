@@ -1,5 +1,7 @@
 import User from './models/User.js';
-import Pedido from './models/Pedidos.js';
+import Shipment from './models/Shipment.js';
+import Address from './models/Address.js';
+import Beer from './models/Beer.js';
 import connectDB from './lib/connectDB.js';
 import 'dotenv/config';
 
@@ -28,22 +30,39 @@ app.use((req, res, next) => {
 
 app.get('/', async (req, res) => {
 
-        await connectDB()
-       const x =  await User.find({})
+      await connectDB()
+      const x =  await User.find({})
 
 
  
     res.json({data: x });
 });
 
-app.get('/pedidostodos', async (req, res) => {
+app.get('/pedidos/:id', async (req, res) => {
 
   await connectDB()
- const x =  await Pedido.find({})
+  //const x =  await Pedido.find({})
+  const userId = req.params.id;
+  try {
+    const user = await User.findOne({ _id: userId }).populate({
+      path: 'shipments',
+      populate: [
+        { path: 'beers.beer', model: 'Beer' },
+        { path: 'user', model: 'User' },
+        { path: 'address', model: 'Address' },
+      ],
+    });
 
-
-
-res.json({data: x });
+    if (user) {
+      res.json(user.shipments);
+    } else {
+      res.status(404).send('User not found');
+    }
+  } catch (error) {
+    console.log('Error al cargas los pedidos'); // Solo para verificar que se esté ejecutando correctamente
+    console.error('Error fetching user data:', error);
+    res.status(500).send('Server error');
+  }
 });
 
 app.post('/login', async (req, res) => {
@@ -101,7 +120,6 @@ app.post('/login', async (req, res) => {
   
       // Subir el archivo
       const snapshot = await uploadBytes(storageRef, file.buffer);
-      console.log('Imagen subida con éxito:', snapshot);
   
       // Obtener la URL de descarga de la imagen subida
       const downloadURL = await getDownloadURL(snapshot.ref);
@@ -111,6 +129,41 @@ app.post('/login', async (req, res) => {
     } catch (error) {
       console.error('Error al subir la imagen:', error);
       res.status(500).send('Error al subir la imagen.');
+    }
+  });
+
+  app.put('/pedidos/:id', async (req, res) => {
+    console.log('Entra al endpoint /pedidos/:id'); // Solo para verificar que se esté ejecutando correctamente
+    try {
+      const pedidoId = req.params.id;
+      const { imagen } = req.body;
+
+      // Validar si se proporcionó una imagen
+      if (!imagen) {
+        return res.status(400).json({ message: 'Imagen requerida' });
+      }
+
+      // Conectar a la base de datos
+      await connectDB();
+
+      // Buscar el pedido por su ID
+      const pedido = await  Shipment.findById(pedidoId);
+
+      // Verificar si el pedido existe
+      if (!pedido) {
+        return res.status(404).json({ message: 'Pedido no encontrado' });
+      }
+
+      // Actualizar la imagen del pedido
+      pedido.evidence = imagen;
+      pedido.status = 'completed';
+      console.log(pedido); // Solo para verificar que se esté ejecutando correctamente
+      await pedido.save();
+
+      res.json({ message: 'Pedido actualizado correctamente' });
+    } catch (error) {
+      console.error('Error al modificar el pedido:', error);
+      res.status(500).json({ message: 'Error al modificar el pedido' });
     }
   });
 

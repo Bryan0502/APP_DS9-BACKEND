@@ -10,7 +10,7 @@ npm install
 ## Ejecución
 Para ejecutar la aplicación, ve a la carpeta raíz del proyecto y ejecuta el siguiente comando:
 ```
-node app.js
+node index.js
 ```
 
 ## Tecnologías utilizadas
